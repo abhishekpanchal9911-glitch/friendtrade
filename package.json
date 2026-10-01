@@ -1,0 +1,17 @@
+{
+  "name": "friendtrade",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FriendTrade demo with Angel One SmartAPI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.4",
+    "express": "^4.21.2",
+    "otplib": "^13.5.0",
+    "ws": "^8.18.0"
+  }
+}

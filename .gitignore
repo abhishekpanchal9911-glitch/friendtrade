@@ -1,0 +1,8 @@
+.env
+node_modules/
+*.log
+*.tar.gz
+*.apk
+server.before_multiuser.js
+public/index.before_multiuser.html
+package.before_multiuser.json

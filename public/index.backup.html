@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FriendTrade</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#fff}
+    .wrap{max-width:520px;margin:auto;padding:18px}.card{background:#151c31;border:1px solid #293453;border-radius:18px;padding:18px;margin-bottom:14px}
+    h1{margin:0 0 5px}.muted{color:#9ca8c7;font-size:13px}.status{display:flex;gap:8px;align-items:center;margin:12px 0}
+    .dot{width:10px;height:10px;border-radius:50%;background:#777}.ok{background:#24d17e}
+    button{width:100%;padding:13px;border:0;border-radius:12px;margin-top:9px;font-weight:700;cursor:pointer}
+    .primary{background:#4f7cff;color:#fff}.secondary{background:#26314e;color:#fff}
+    .price{font-size:34px;font-weight:800;margin-top:10px}.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #27314a}
+    #log{white-space:pre-wrap;color:#aab6d5;font-size:12px;margin-top:12px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>FriendTrade</h1>
+    <div class="muted">Angel One market demo</div>
+    <div class="status"><span id="dot" class="dot"></span><span id="status">Not connected</span></div>
+    <button class="primary" onclick="login()">1. Login with Angel One</button>
+    <button class="secondary" onclick="startFeed()">2. Start Live Market Feed</button>
+    <button class="secondary" onclick="refresh()">Refresh</button>
+  </div>
+
+  <div class="card">
+    <div class="muted">NIFTY 50 token: 99926000</div>
+    <div id="price" class="price">--</div>
+    <div id="updated" class="muted">Waiting for live price...</div>
+  </div>
+
+  <div class="card">
+    <div class="row"><span>Angel login</span><b id="loginState">No</b></div>
+    <div class="row"><span>Market feed</span><b id="feedState">No</b></div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+async function call(url, options={}) {
+  const r = await fetch(url, {headers:{'Content-Type':'application/json'}, ...options});
+  const j = await r.json();
+  if (!r.ok || j.ok === false) throw new Error(j.error || j.message || 'Request failed');
+  return j;
+}
+
+function log(x){document.getElementById('log').textContent=x}
+
+async function login(){
+  try{
+    const j=await call('/api/login',{method:'POST',body:'{}'});
+    log(j.message || 'Login successful');
+    await refresh();
+  }catch(e){log('Login error: '+e.message)}
+}
+
+async function startFeed(){
+  try{
+    const j=await call('/api/start-feed',{method:'POST',body:JSON.stringify({
+      tokenList:[{exchangeType:1,tokens:['99926000']}]
+    })});
+    log(j.message || 'Feed started');
+    setTimeout(refresh,1000);
+  }catch(e){log('Feed error: '+e.message)}
+}
+
+async function refresh(){
+  try{
+    const j=await call('/api/status');
+    document.getElementById('loginState').textContent=j.loggedIn?'Yes':'No';
+    document.getElementById('feedState').textContent=j.feedConnected?'Yes':'No';
+    document.getElementById('dot').className='dot '+(j.feedConnected?'ok':'');
+    document.getElementById('status').textContent=j.feedConnected?'Live market connected':(j.loggedIn?'Logged in':'Not connected');
+
+    const tick=j.latest?.['99926000'];
+    if(tick){
+      document.getElementById('price').textContent='₹'+Number(tick.ltp).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+      document.getElementById('updated').textContent='Updated '+new Date(tick.receivedAt).toLocaleTimeString();
+    }
+  }catch(e){log('Status error: '+e.message)}
+}
+
+setInterval(refresh,2000);
+refresh();
+</script>
+</body>
+</html>

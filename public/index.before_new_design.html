@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FriendTrade</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#080d19;
+  color:#f5f7ff;
+  font-family:Arial,sans-serif
+}
+.wrap{max-width:560px;margin:auto;padding:14px}
+.card{
+  background:#121a2d;
+  border:1px solid #273452;
+  border-radius:20px;
+  padding:16px;
+  margin-bottom:12px;
+  box-shadow:0 8px 30px rgba(0,0,0,.18)
+}
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center
+}
+.logo{font-size:27px;font-weight:800}
+.badge{
+  font-size:12px;
+  padding:6px 9px;
+  border-radius:20px;
+  background:#17243d;
+  color:#9fb0d4
+}
+.muted{color:#8f9bb8;font-size:13px}
+.green{color:#35df91}
+.red{color:#ff6678}
+.price{font-size:38px;font-weight:800;margin:7px 0}
+.change{font-size:13px;color:#8f9bb8}
+.status{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-top:10px
+}
+.dot{
+  width:9px;height:9px;border-radius:50%;
+  background:#667085
+}
+.dot.ok{background:#35df91}
+canvas{
+  width:100%;
+  height:120px;
+  display:block;
+  margin-top:10px
+}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+.stat{
+  background:#0d1425;
+  border:1px solid #25304a;
+  border-radius:14px;
+  padding:13px
+}
+.stat b{display:block;font-size:19px;margin-top:5px}
+label{display:block;margin-bottom:6px}
+input{
+  width:100%;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid #2b3855;
+  background:#080e1d;
+  color:white;
+  font-size:17px;
+  outline:none
+}
+.buttons{display:flex;gap:10px;margin-top:10px}
+button{
+  border:0;
+  border-radius:13px;
+  padding:14px;
+  font-weight:800;
+  font-size:15px;
+  color:white;
+  cursor:pointer
+}
+.buy{background:#3f78ff;flex:1}
+.sell{background:#273653;flex:1}
+.secondary{
+  width:100%;
+  background:#1c2944;
+  margin-top:8px
+}
+.row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:11px 0;
+  border-bottom:1px solid #25304a
+}
+.row:last-child{border-bottom:0}
+.history{
+  max-height:260px;
+  overflow:auto;
+  margin-top:8px
+}
+.order{
+  padding:11px 0;
+  border-bottom:1px solid #25304a
+}
+.order:last-child{border-bottom:0}
+.orderTitle{font-weight:800}
+.small{font-size:12px;color:#8996b5}
+.log{
+  font-size:13px;
+  color:#aab6d1;
+  margin-top:10px;
+  min-height:18px
+}
+.footer{
+  text-align:center;
+  color:#687592;
+  font-size:11px;
+  padding:5px 0 18px
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <div class="top">
+      <div>
+        <div class="logo">FriendTrade</div>
+        <div class="muted">Paper Trading Terminal</div>
+      </div>
+      <div class="badge">DEMO</div>
+    </div>
+
+    <div class="status">
+      <span id="dot" class="dot"></span>
+      <span id="status">Not connected</span>
+    </div>
+
+    <button class="buy" style="width:100%;margin-top:12px" onclick="login()">
+      LOGIN WITH ANGEL ONE
+    </button>
+
+    <button class="secondary" onclick="startFeed()">
+      START LIVE MARKET FEED
+    </button>
+
+    <button class="secondary" onclick="refreshAll()">
+      REFRESH
+    </button>
+
+    <div id="log" class="log"></div>
+  </div>
+
+  <div class="card">
+    <div class="muted">NIFTY 50</div>
+    <div id="price" class="price">₹--</div>
+    <div id="updated" class="change">Waiting for live price...</div>
+    <canvas id="chart" width="520" height="140"></canvas>
+  </div>
+
+  <div class="grid">
+    <div class="stat">
+      <div class="muted">Virtual Balance</div>
+      <b id="paperBalance">₹1,00,000.00</b>
+    </div>
+
+    <div class="stat">
+      <div class="muted">Portfolio</div>
+      <b id="paperTotal">₹1,00,000.00</b>
+    </div>
+
+    <div class="stat">
+      <div class="muted">Holdings</div>
+      <b id="paperQty">0</b></div><div class="row"><span>Average Buy Price</span><b id="paperAvgPrice">₹0.00</b></div><div class="row"><span>Holding Value</span><b id="paperHoldingValue">₹0.00</b>
+    </div>
+
+    <div class="stat">
+      <div class="muted">Total P&L</div>
+      <b id="totalPnl">₹0.00</b>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="top">
+      <div>
+        <div style="font-size:20px;font-weight:800">Paper Trading</div>
+        <div class="muted">No real-money order</div>
+      </div>
+      <div class="badge">NIFTY 50</div>
+    </div>
+
+    <div style="margin-top:15px">
+      <label class="muted">Quantity</label>
+      <input id="paperQtyInput" type="number" min="1" step="1" value="1">
+    </div>
+
+    <div class="buttons">
+      <button class="buy" onclick="paperOrder('BUY')">BUY</button>
+      <button class="sell" onclick="paperOrder('SELL')">SELL</button>
+    </div>
+
+    <div id="paperLog" class="log"></div>
+
+    <div style="margin-top:12px">
+      <div class="row">
+        <span class="muted">Realized P&L</span>
+        <b id="realizedPnl">₹0.00</b>
+      </div>
+
+      <div class="row">
+        <span class="muted">Unrealized P&L</span>
+        <b id="unrealizedPnl">₹0.00</b>
+      </div>
+
+      <div class="row">
+        <span class="muted">Holdings Value</span>
+        <b id="holdingsValue">₹0.00</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="top">
+      <div style="font-size:20px;font-weight:800">Order History</div>
+      <div id="orderCount" class="badge">0 Orders</div>
+    </div>
+
+    <div id="orderHistory" class="history">
+      <div class="muted">No orders yet</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span>Angel Login</span>
+      <b id="loginState">No</b>
+    </div>
+
+    <div class="row">
+      <span>Market Feed</span>
+      <b id="feedState">No</b>
+    </div>
+  </div>
+
+  <div class="footer">
+    FriendTrade • Paper Trading Demo
+  </div>
+
+</div>
+
+<script>
+async function call(url, options={}) {
+  const r = await fetch(url,{
+    headers:{'Content-Type':'application/json'},
+    ...options
+  });
+
+  const j = await r.json();
+
+  if(!r.ok || j.ok === false)
+    throw new Error(j.error || j.message || 'Request failed');
+
+  return j;
+}
+
+function money(v){
+  return '₹' + Number(v || 0).toLocaleString('en-IN',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+function log(x){
+  document.getElementById('log').textContent=x;
+}
+
+async function login(){
+  try{
+    const j=await call('/api/login',{
+      method:'POST',
+      body:'{}'
+    });
+
+    log(j.message || 'Login successful');
+    await refreshAll();
+  }catch(e){
+    log('Login error: '+e.message);
+  }
+}
+
+async function startFeed(){
+  try{
+    const j=await call('/api/start-feed',{
+      method:'POST',
+      body:JSON.stringify({
+        tokenList:[
+          {exchangeType:1,tokens:['99926000']}
+        ]
+      })
+    });
+
+    log(j.message || 'Market feed started');
+
+    setTimeout(refreshAll,1000);
+  }catch(e){
+    log('Feed error: '+e.message);
+  }
+}
+
+const prices=[];
+
+function drawChart(){
+  const canvas=document.getElementById('chart');
+  const ctx=canvas.getContext('2d');
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(prices.length<2)return;
+
+  const min=Math.min(...prices);
+  const max=Math.max(...prices);
+  const range=(max-min)||1;
+
+  ctx.beginPath();
+
+  prices.forEach((p,i)=>{
+    const x=8+(i/(prices.length-1))*(canvas.width-16);
+    const y=125-((p-min)/range)*105;
+
+    if(i===0)ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  });
+
+  ctx.strokeStyle='#4f7cff';
+  ctx.lineWidth=3;
+  ctx.stroke();
+}
+
+async function refresh(){
+  try{
+    const j=await call('/api/status');
+
+    document.getElementById('loginState').textContent=
+      j.loggedIn?'Yes':'No';
+
+    document.getElementById('feedState').textContent=
+      j.feedConnected?'Yes':'No';
+
+    document.getElementById('dot').className=
+      'dot '+(j.feedConnected?'ok':'');
+
+    document.getElementById('status').textContent=
+      j.feedConnected
+      ?'Live market connected'
+      :(j.loggedIn?'Logged in':'Not connected');
+
+    const tick=j.latest?.['99926000'];
+
+    if(tick){
+      const p=Number(tick.ltp);
+
+      document.getElementById('price').textContent=money(p);
+
+      document.getElementById('updated').textContent=
+        'Updated '+new Date(tick.receivedAt).toLocaleTimeString();
+
+      prices.push(p);
+
+      if(prices.length>40)prices.shift();
+
+      drawChart();
+    }
+
+  }catch(e){
+    log('Status error: '+e.message);
+  }
+}
+
+async function paperRefresh(){
+  try{
+    const j=await call('/api/paper/status');
+
+    document.getElementById('paperBalance').textContent=
+      money(j.balance);
+
+    document.getElementById('paperTotal').textContent=
+      money(j.totalValue);
+
+    document.getElementById('holdingsValue').textContent=
+      money(j.holdingsValue);
+
+    const h=j.holdings?.['NIFTY 50'];
+
+    document.getElementById('paperQty').textContent=
+      h ? h.qty : 0;
+
+    document.getElementById('paperAvgPrice').textContent =
+      money(h ? h.avgPrice : 0);
+
+    document.getElementById('paperHoldingValue').textContent =
+      money(j.holdingsValue || 0);
+
+    document.getElementById('realizedPnl').textContent=
+      money(j.realizedPnl);
+
+    document.getElementById('unrealizedPnl').textContent=
+      money(j.unrealizedPnl);
+
+    document.getElementById('totalPnl').textContent=
+      money(j.totalPnl);
+
+    const total=Number(j.totalPnl||0);
+
+    document.getElementById('totalPnl').className=
+      total>0?'green':(total<0?'red':'');
+
+    const orders=Array.isArray(j.orders)?j.orders:[];
+
+    document.getElementById('orderCount').textContent=
+      orders.length+' Order'+(orders.length===1?'':'s');
+
+    const history=document.getElementById('orderHistory');
+
+    if(!orders.length){
+      history.innerHTML='<div class="muted">No orders yet</div>';
+      return;
+    }
+
+    history.innerHTML=orders.map(o=>{
+      const side=o.side==='BUY';
+      const time=new Date(o.time).toLocaleString();
+
+      return `
+        <div class="order">
+          <div class="orderTitle ${side?'green':'red'}">
+            ${o.side} ${o.qty} NIFTY @ ${money(o.price)}
+          </div>
+          <div class="small">${time}</div>
+        </div>
+      `;
+    }).join('');
+
+  }catch(e){
+    document.getElementById('paperLog').textContent=
+      'Paper status error: '+e.message;
+  }
+}
+
+async function paperOrder(side){
+  try{
+    const qty=Number(
+      document.getElementById('paperQtyInput').value
+    );
+
+    const j=await call('/api/paper/order',{
+      method:'POST',
+      body:JSON.stringify({side,qty})
+    });
+
+    document.getElementById('paperLog').textContent=
+      side+' executed: '+qty+
+      ' NIFTY @ '+money(j.order.price);
+
+    await paperRefresh();
+
+  }catch(e){
+    document.getElementById('paperLog').textContent=
+      'Order error: '+e.message;
+  }
+}
+
+async function refreshAll(){
+  await refresh();
+  await paperRefresh();
+}
+
+setInterval(refresh,2000);
+setInterval(paperRefresh,2000);
+
+refreshAll();
+</script>
+
+</body>
+</html>
